@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "jinja2-renderer"
+version = "0.1.0"
+description = ""
+authors = []
+packages = [{ include = "jinja2_renderer", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Jinja2 = "^3.1"
+
+[tool.poetry.scripts]
+jinja2-renderer = "jinja2_renderer.renderer:main"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.5.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.ruff]
+target-version = "py311"
+line-length = 140
+
+[tool.ruff.lint]
+# Enable isort
+extend-select = ["I"]
