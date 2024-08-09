@@ -33,13 +33,13 @@
         overlays = [ inputs.poetry2nix.overlays.default ];
       };
 
-      packages = rec {
+      packages = {
         jinja2-renderer = pkgs.callPackage ./nix/jinja2-renderer.nix { };
-        render-templates = pkgs.callPackage ./nix/render-templates.nix { inherit jinja2-renderer; };
       };
 
-      overlayAttrs = {
-        inherit (config.packages) jinja2-renderer render-templates;
+      overlayAttrs = rec {
+        inherit (config.packages) jinja2-renderer;
+        render-templates = pkgs.callPackage ./nix/render-templates.nix { inherit jinja2-renderer; };
       };
     };
 
