@@ -45,7 +45,7 @@ pkgs.stdenvNoCC.mkDerivation {
 
       dst="$out/$outputPrefix"
       mkdir -p "$dst"
-      renderer ${lib.concatStringsSep " " arguments}
+      jinja2-renderer ${lib.concatStringsSep " " arguments}
 
       runHook postBuild
     '';
