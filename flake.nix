@@ -21,27 +21,33 @@
     };
   };
 
-  outputs = inputs@{ flake-parts, systems, self, ... }: flake-parts.lib.mkFlake { inherit inputs; } {
+  outputs = inputs@{ flake-parts, systems, self, ... }: flake-parts.lib.mkFlake { inherit inputs; } ({ withSystem, ... }: {
     systems = import systems;
     imports = [
       inputs.flake-parts.flakeModules.easyOverlay
+      ./flake-parts/modules/lib.nix
     ];
 
     perSystem = { config, system, pkgs, ... }: {
       _module.args.pkgs = import inputs.nixpkgs {
         inherit system;
-        overlays = [ inputs.poetry2nix.overlays.default ];
+        overlays = [
+          inputs.poetry2nix.overlays.default
+        ];
       };
 
       packages = {
         jinja2-renderer = pkgs.callPackage ./nix/jinja2-renderer.nix { };
       };
 
-      overlayAttrs = rec {
+      lib = {
+        render-templates = pkgs.callPackage ./nix/render-templates.nix { inherit (config.packages) jinja2-renderer; };
+      };
+
+      overlayAttrs = {
         inherit (config.packages) jinja2-renderer;
-        render-templates = pkgs.callPackage ./nix/render-templates.nix { inherit jinja2-renderer; };
       };
     };
 
-  };
+  });
 }
