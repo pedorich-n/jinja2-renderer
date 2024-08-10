@@ -17,7 +17,7 @@ pkgs.render-templates {
     }; # Variables to use for substitution;
     outputPrefix = "example/folder"; # Where to save rendered files under $out
     name = "example-templates";
-    stricut = true; # Disallow underfined variables
+    strict = true; # Disallow underfined variables
 };
 
 ```
