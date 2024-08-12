@@ -9,24 +9,41 @@
 , outputPrefix ? ""
 , name ? "templates"
 , strict ? true
-}:
-pkgs.stdenvNoCC.mkDerivation {
+, ...
+} @ args:
+let
+  prepareIncludesEntry = entry:
+    if (lib.isDerivation entry) then { name = entry.name; path = entry; }
+    else if (lib.isPath entry) then { name = builtins.baseNameOf entry; path = entry; }
+    else if (lib.isAttrs entry) then entry
+    else builtins.abort "Unknown 'includes' entry type for '${builtins.toString entry}'!";
+
+  combinedIncludes = pkgs.linkFarm "includes" (builtins.map prepareIncludesEntry includes);
+
+  extraArgs = builtins.removeAttrs args [
+    "templates"
+    "includes"
+    "variables"
+    "name"
+    "strict"
+  ];
+in
+pkgs.stdenvNoCC.mkDerivation ({
   name = "rendered-${name}";
 
   srcs = [
     (builtins.path { name = "templates"; path = templates; })
-  ] ++ includes;
+  ] ++ lib.optional (includes != [ ]) combinedIncludes;
 
   sourceRoot = ".";
 
-  dontConfigure = true;
   dontPatch = true;
+  dontConfigure = true;
   dontInstall = true;
   dontFixup = true;
 
   passAsFile = [ "variables" ];
   variables = builtins.toJSON variables;
-  inherit outputPrefix;
 
   nativeBuildInputs = [ jinja2-renderer ];
 
@@ -36,7 +53,7 @@ pkgs.stdenvNoCC.mkDerivation {
         ''--template "$sourceRoot/templates"''
         ''--output "$dst"''
       ]
-      ++ lib.optionals (includes != [ ]) ''--include ${builtins.map (include: "$sourceRoot/$(stripHash ${include})") includes}''
+      ++ lib.optional (includes != [ ]) ''--include "$sourceRoot/includes"''
       ++ lib.optional (variables != { }) ''--variables "$variablesPath"''
       ++ lib.optional strict "--strict";
     in
@@ -49,5 +66,5 @@ pkgs.stdenvNoCC.mkDerivation {
 
       runHook postBuild
     '';
-}
+} // extraArgs)
 
