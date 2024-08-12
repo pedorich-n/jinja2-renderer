@@ -1,9 +1,20 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, List, Optional, TypeVar
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+
+def _map_option(optional: Optional[T], f: Callable[[T], U]) -> Optional[U]:
+    """Map Optional value, if present"""
+    if optional:
+        return f(optional)
+    else:
+        return None
 
 
 def maybe_load_variables(json_file: Optional[Path]) -> dict:
@@ -15,19 +26,18 @@ def maybe_load_variables(json_file: Optional[Path]) -> dict:
         return {}
 
 
-def render_template(template: Template, variables: Dict, output: Path) -> None:
+def render_template(template: Template, variables: dict, output: Path) -> None:
     """Render a Jinja2 template and save it to a file."""
     rendered_content = template.render(variables)
+    output.parent.mkdir(exist_ok=True, parents=True)
     with open(output, "w") as output_file:
         output_file.write(rendered_content)
     print(f"Rendered and saved to {output}")
 
 
 def render_templates(templates_root: Path, includes: List[Path], output_root: Path, variables_path: Optional[Path], strict: bool) -> None:
-    paths = [templates_root]
-    paths.extend(includes)
     env = Environment(
-        loader=FileSystemLoader(paths),
+        loader=FileSystemLoader([templates_root] + includes),
         trim_blocks=True,
         lstrip_blocks=True,
     )
@@ -35,16 +45,15 @@ def render_templates(templates_root: Path, includes: List[Path], output_root: Pa
         env.undefined = StrictUndefined
 
     variables = maybe_load_variables(variables_path)
-    output_root.mkdir(exist_ok=True)
+    output_root.mkdir(exist_ok=True, parents=True)
 
-    # Iterate through all template files in the template folder
     for template_path in templates_root.glob("*.j2"):
         print(f"Loading {template_path}")
         template = env.get_template(template_path.name)
 
-        # Strip the .j2 extension and save to the rendered folder
-        output_filename = template_path.stem
-        output_path = output_root.joinpath(output_filename)
+        relative_path = template_path.relative_to(templates_root)
+        output_relative_path = relative_path.with_suffix("")  # Strip the '.j2' suffix
+        output_path = output_root.joinpath(output_relative_path)
 
         render_template(template, variables, output_path)
 
@@ -59,6 +68,11 @@ def main():
 
     args = parser.parse_args()
 
+    templates_root: Path = args.templates.resolve()
+    includes: List[Path] = [p.resolve() for p in args.include]
+    output_root: Path = args.output.resolve()
+    variables_path: Optional[Path] = _map_option(args.variables, lambda p: p.resolve())
+
     render_templates(
-        templates_root=args.templates, includes=args.include, output_root=args.output, variables_path=args.variables, strict=args.strict
+        templates_root=templates_root, includes=includes, output_root=output_root, variables_path=variables_path, strict=args.strict
     )
