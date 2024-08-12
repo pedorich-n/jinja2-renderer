@@ -47,7 +47,7 @@ def render_templates(templates_root: Path, includes: List[Path], output_root: Pa
     variables = maybe_load_variables(variables_path)
     output_root.mkdir(exist_ok=True, parents=True)
 
-    for template_path in templates_root.glob("*.j2"):
+    for template_path in templates_root.rglob("*.j2"):
         print(f"Loading {template_path}")
         template = env.get_template(template_path.name)
 
