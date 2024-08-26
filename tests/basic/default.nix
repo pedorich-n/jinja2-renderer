@@ -1,4 +1,4 @@
-{ pkgs, render-templates, ... }:
+{ pkgs, render-templates }:
 let
   rendered = render-templates {
     name = "derivation-test";
@@ -9,11 +9,14 @@ let
       program = "Nix";
     };
     outputPrefix = "test";
+    strict = true;
   };
 
 in
-pkgs.testers.testEqualContents {
-  assertion = "Render templates correclty";
-  expected = pkgs.writeTextDir "test/example.txt" (builtins.readFile ./expected/example.txt);
-  actual = rendered;
+{
+  basic = pkgs.testers.testEqualContents {
+    assertion = "Render templates correclty";
+    expected = pkgs.writeTextDir "test/example.txt" (builtins.readFile ./expected/example.txt);
+    actual = rendered;
+  };
 }
