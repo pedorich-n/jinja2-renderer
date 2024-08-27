@@ -25,13 +25,13 @@ let
     options = optionsFor module;
   }).optionsCommonMark;
 
-  # showDocs = pkgs.writeShellApplication {
-  #   name = "show-docs";
-  #   runtimeInputs = with pkgs; [ less glow ];
-  #   text = ''
-  #     glow -p "$1"
-  #   '';
-  # };
+  showDocs = pkgs.writeShellApplication {
+    name = "show-docs";
+    runtimeInputs = with pkgs; [ less glow ];
+    text = ''
+      glow -p "$1"
+    '';
+  };
 in
 pkgs.stdenvNoCC.mkDerivation (finalAttrs:
 {
@@ -41,17 +41,17 @@ pkgs.stdenvNoCC.mkDerivation (finalAttrs:
   dontInstall = true;
   dontFixup = true;
 
-  # meta.mainProgram = "docs";
-
-  # nativeBuildInputs = with pkgs; [ mkdocs ];
+  meta.mainProgram = "docs";
 
   buildPhase = ''
     runHook preBuild
 
-    mkdir -p $out/{bin,docs,dist}
+    mkdir -p $out/{bin,docs}
 
-    cp ${../docs/mkdocs.yml} $out/mkdocs.yml
     cp ${makeOptionsDoc ../nix/render-templates-module.nix} $out/docs/module.md
+
+    echo "${lib.getExe showDocs} $out" >> $out/bin/docs
+    chmod +x $out/bin/docs
 
     runHook postBuild
   '';
