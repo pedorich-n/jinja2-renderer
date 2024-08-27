@@ -43,7 +43,7 @@ in
     };
 
     variables = mkOption {
-      type = jsonFormat.type;
+      type = types.attrsOf jsonFormat.type;
       default = { };
       description = "Variables to use for substitution";
       example = literalExpression ''
