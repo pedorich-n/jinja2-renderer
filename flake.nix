@@ -23,37 +23,14 @@
 
   outputs = inputs@{ flake-parts, systems, self, ... }: flake-parts.lib.mkFlake { inherit inputs; } ({ withSystem, ... }: {
     systems = import systems;
+
     imports = [
       inputs.flake-parts.flakeModules.easyOverlay
       ./flake-parts/modules/lib.nix
+      ./flake-parts/module-args.nix
+      ./flake-parts/packages.nix
+      ./flake-parts/lib.nix
+      ./flake-parts/checks.nix
     ];
-
-    perSystem = { config, system, pkgs, lib, ... }: {
-      _module.args.pkgs = import inputs.nixpkgs {
-        inherit system;
-        overlays = [
-          inputs.poetry2nix.overlays.default
-        ];
-      };
-
-      checks =
-        let
-          tests = import ./tests { inherit (config.lib) render-templates; inherit pkgs; };
-        in
-        tests;
-
-      packages = {
-        jinja2-renderer = pkgs.callPackage ./nix/jinja2-renderer.nix { };
-      };
-
-      lib = {
-        render-templates = pkgs.callPackage ./nix/render-templates.nix { inherit (config.packages) jinja2-renderer; };
-      };
-
-      overlayAttrs = {
-        inherit (config.packages) jinja2-renderer;
-      };
-    };
-
   });
 }
