@@ -76,7 +76,6 @@ in
     };
 
 
-
     _out = mkOption {
       type = types.package;
       internal = true;
