@@ -1,29 +1,20 @@
 import argparse
 import json
+from functools import reduce
 from pathlib import Path
-from typing import Callable, List, Optional, TypeVar
+from typing import List
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template
 
-T = TypeVar("T")
-U = TypeVar("U")
 
-
-def _map_option(optional: Optional[T], f: Callable[[T], U]) -> Optional[U]:
-    """Map Optional value, if present"""
-    if optional:
-        return f(optional)
-    else:
-        return None
-
-
-def maybe_load_variables(json_file: Optional[Path]) -> dict:
+def load_variables(json_files: List[Path]) -> dict:
     """Load variables from a JSON file."""
-    if json_file:
-        with open(json_file, "r") as f:
-            return json.load(f)
-    else:
-        return {}
+    jsons: List[dict] = []
+    for file in json_files:
+        with open(file, "r") as f:
+            jsons.append(json.load(f))
+
+    return reduce(lambda acc, d: acc | d, jsons, {})
 
 
 def render_template(template: Template, variables: dict, output: Path) -> None:
@@ -35,7 +26,7 @@ def render_template(template: Template, variables: dict, output: Path) -> None:
     print(f"Rendered and saved to {output}")
 
 
-def render_templates(templates_root: Path, includes: List[Path], output_root: Path, variables_path: Optional[Path], strict: bool) -> None:
+def render_templates(templates_root: Path, includes: List[Path], output_root: Path, variables_paths: List[Path], strict: bool) -> None:
     env = Environment(
         loader=FileSystemLoader([templates_root] + includes),
         trim_blocks=True,
@@ -44,7 +35,7 @@ def render_templates(templates_root: Path, includes: List[Path], output_root: Pa
     if strict:
         env.undefined = StrictUndefined
 
-    variables = maybe_load_variables(variables_path)
+    variables = load_variables(variables_paths)
     output_root.mkdir(exist_ok=True, parents=True)
 
     for template_path in templates_root.rglob("*.j2"):
@@ -61,9 +52,9 @@ def render_templates(templates_root: Path, includes: List[Path], output_root: Pa
 def main():
     parser = argparse.ArgumentParser(formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(prog, max_help_position=60))
     parser.add_argument("--templates", type=Path, required=True, help="Path to templates to render")
-    parser.add_argument("--include", type=Path, required=False, nargs="+", help="Extra folder(s) to include", default=[])
+    parser.add_argument("--include", type=Path, required=False, action="append", help="Extra folder(s) to include", default=[])
     parser.add_argument("--output", type=Path, required=True, help="Path to output folder")
-    parser.add_argument("--variables", type=Path, required=False, help="Path to JSON variables to use for substitution")
+    parser.add_argument("--variables", type=Path, required=False, action="append", help="Path to JSON variables to use for substitution")
     parser.add_argument("--strict", action="store_true", required=False, help="If set, no undefined variables are allowed", default=False)
 
     args = parser.parse_args()
@@ -71,8 +62,8 @@ def main():
     templates_root: Path = args.templates.resolve()
     includes: List[Path] = [p.resolve() for p in args.include]
     output_root: Path = args.output.resolve()
-    variables_path: Optional[Path] = _map_option(args.variables, lambda p: p.resolve())
+    variables_paths: List[Path] = [path.resolve() for path in args.variables]
 
     render_templates(
-        templates_root=templates_root, includes=includes, output_root=output_root, variables_path=variables_path, strict=args.strict
+        templates_root=templates_root, includes=includes, output_root=output_root, variables_paths=variables_paths, strict=args.strict
     )
